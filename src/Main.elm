@@ -4,6 +4,10 @@ import Browser
 import Html exposing (Html, text, div, h1, img, form, input, button)
 import Html.Attributes exposing (src, type_, placeholder, disabled)
 import Html.Events exposing (onInput, onSubmit, onClick)
+import Json.Decode exposing (Decoder, succeed, int, string, bool) 
+import Json.Decode.Pipeline exposing (required)
+import Json.Encode as Encode
+import WebSockets
 
 ---- MODEL ----
 type alias Message =
@@ -12,6 +16,24 @@ type alias Message =
     , uid : Int
     , deleted : Bool
     }
+
+messageEncoder : Message -> Encode.Value
+messageEncoder message =
+    Encode.object
+        [ ("userName", Encode.string message.userName)
+        , ("message", Encode.string message.message)
+        , ("uid", Encode.int message.uid)
+        , ("deleted", Encode.bool message.deleted)
+        ]
+
+messageDecoder : Decoder Message
+messageDecoder = 
+    succeed Message
+        |> required "userName" string
+        |> required "message" string 
+        |> required "uid" int 
+        |> required "deleted" bool
+
 
 type alias Model =
     { messages : List Message 
@@ -23,7 +45,7 @@ type alias Model =
 
 initialModel : Model 
 initialModel = 
-    { messages = []
+    { messages = [{userName = "Monica", message = "Whats up", uid = 1, deleted = False}]
     , currentMessage = ""
     , userName = "" 
     , currentUserName = ""
@@ -93,21 +115,32 @@ viewInputArea model =
     div [] 
         [ form [ onSubmit (AddMessage <| newMessage model.userName model.currentMessage model.id)] 
             [ input [ type_ "text", onInput UpdateCurrentMessage ] [ ] 
-            , button [] [ text "Send" ] 
+            , button [ disabled (String.isEmpty model.currentMessage) ] [ text "Send" ] 
             ]
         ]
 
-viewMessage : Message -> Html Msg
-viewMessage message =
+viewReceivedMessage : Message -> Html Msg
+viewReceivedMessage message =
+    div []
+        [ text (message.userName ++ ": " ++ message.message)]
+
+viewSentMessage : Message -> Html Msg
+viewSentMessage message =
+    div []
+        [ text message.message 
+        , button [ onClick (Delete message.uid) ] [ text "delete" ]
+        ]
+
+viewMessage : String -> Message -> Html Msg
+viewMessage username message =
     if message.deleted then 
         div []
             [ text (message.userName ++ " deleted this message") ]
     else
-        div [] 
-            [ text (message.userName ++ ": " ++ message.message)
-            , button [ onClick (Delete message.uid) ] [ text "delete" ] 
-            ]
-
+        if message.userName == username then 
+            viewSentMessage message
+        else 
+            viewReceivedMessage message
 ---- VIEW ----
 view : Model -> Html Msg
 view model =
@@ -118,7 +151,7 @@ view model =
             div []
                 [ h1 [] [ text "Chat App" ]
                 , viewInputArea model
-                , div [] (List.map viewMessage model.messages) 
+                , div [] (List.map (viewMessage model.userName) model.messages) 
                 ]
 
 ---- PROGRAM ----
