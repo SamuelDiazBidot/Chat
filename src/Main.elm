@@ -34,26 +34,23 @@ messageDecoder =
         |> required "uid" int 
         |> required "deleted" bool
 
-
 type alias Model =
     { messages : List Message 
     , currentMessage : String 
     , userName : String
     , currentUserName : String
-    , id : Int
     }
 
 initialModel : Model 
 initialModel = 
-    { messages = [{userName = "Monica", message = "Whats up", uid = 1, deleted = False}]
+    { messages = []
     , currentMessage = ""
     , userName = "" 
     , currentUserName = ""
-    , id = 0
     }
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> ( Model, Cmd Msg )
+init () =
     ( initialModel, Cmd.none )
 
 ---- UPDATE ----
@@ -62,6 +59,7 @@ type Msg
     | AddMessage (Result Json.Decode.Error Message)
     | SendMessage Message
     | Delete Int
+    | SendDeleteRequest Int
     | SubmitUserName String
     | UpdateCurrentUserName String
 
@@ -71,19 +69,22 @@ update msg model =
         UpdateCurrentMessage message ->
             ( { model | currentMessage = message }, Cmd.none )
         AddMessage (Ok message) ->
-            ( { model | id = model.id + 1
-                      , messages = message :: model.messages 
-              }
+            ( { model | messages = message :: model.messages }
             , Cmd.none 
             )
-        AddMessage (Err eror) ->
+        AddMessage (Err error) ->
             (model, Cmd.none)
         SendMessage message ->
             ( model 
             , WebSockets.addMessageOut (Encode.encode 0 (messageEncoder message)) )
         Delete id ->
+            Debug.log  "hi"--(Debug.toString model.messages)
             ( { model | messages = List.map (\message -> deleteById id message) model.messages }
             , Cmd.none
+            )
+        SendDeleteRequest id ->
+            ( model
+            , WebSockets.deleteMessageOut (String.fromInt id) 
             )
         SubmitUserName username ->
             ( { model | userName = username }, Cmd.none )
@@ -97,19 +98,23 @@ deleteById id message =
     else 
         message
 
-newMessage : String -> String -> Int -> Message
-newMessage userName message id = 
+newMessage : String -> String -> Message
+newMessage userName message = 
     { userName = userName 
     , message = message
-    , uid = id
+    , uid = 0 
     , deleted = False
     }
 
 ---- SUBSCRIPTIONS ---- 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-   WebSockets.addMessageIn (AddMessage << decodeString messageDecoder)
+    Sub.batch 
+        [ WebSockets.addMessageIn (AddMessage << decodeString messageDecoder) 
+        , WebSockets.deleteMessageIn (Delete << (\t -> Maybe.withDefault 0 <| String.toInt t))
+        ]
 
+---- VIEW ----
 viewUsernameSelection : Model -> Html Msg 
 viewUsernameSelection model =
     div []
@@ -124,7 +129,7 @@ viewUsernameSelection model =
 viewInputArea : Model -> Html Msg
 viewInputArea model = 
     div [] 
-        [ form [ onSubmit (SendMessage <| newMessage model.userName model.currentMessage model.id)] 
+        [ form [ onSubmit (SendMessage <| newMessage model.userName model.currentMessage)] 
             [ input [ type_ "text", onInput UpdateCurrentMessage ] [ ] 
             , button [ disabled (String.isEmpty model.currentMessage) ] [ text "Send" ] 
             ]
@@ -139,7 +144,7 @@ viewSentMessage : Message -> Html Msg
 viewSentMessage message =
     div []
         [ text message.message 
-        , button [ onClick (Delete message.uid) ] [ text "delete" ]
+        , button [ onClick (SendDeleteRequest message.uid) ] [ text "delete" ]
         ]
 
 viewMessage : String -> Message -> Html Msg
@@ -152,6 +157,7 @@ viewMessage username message =
             viewSentMessage message
         else 
             viewReceivedMessage message
+
 ---- VIEW ----
 view : Model -> Html Msg
 view model =
@@ -170,7 +176,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { view = view
-        , init = \_ -> init
+        , init = init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
