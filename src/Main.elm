@@ -4,7 +4,7 @@ import Browser
 import Html exposing (Html, text, div, h1, img, form, input, button)
 import Html.Attributes exposing (src, type_, placeholder, disabled)
 import Html.Events exposing (onInput, onSubmit, onClick)
-import Json.Decode exposing (Decoder, succeed, int, string, bool) 
+import Json.Decode exposing (Decoder, succeed, int, string, bool, decodeString) 
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import WebSockets
@@ -59,7 +59,8 @@ init =
 ---- UPDATE ----
 type Msg
     = UpdateCurrentMessage String
-    | AddMessage Message
+    | AddMessage (Result Json.Decode.Error Message)
+    | SendMessage Message
     | Delete Int
     | SubmitUserName String
     | UpdateCurrentUserName String
@@ -69,12 +70,17 @@ update msg model =
     case msg of 
         UpdateCurrentMessage message ->
             ( { model | currentMessage = message }, Cmd.none )
-        AddMessage message ->
+        AddMessage (Ok message) ->
             ( { model | id = model.id + 1
                       , messages = message :: model.messages 
               }
             , Cmd.none 
             )
+        AddMessage (Err eror) ->
+            (model, Cmd.none)
+        SendMessage message ->
+            ( model 
+            , WebSockets.addMessageOut (Encode.encode 0 (messageEncoder message)) )
         Delete id ->
             ( { model | messages = List.map (\message -> deleteById id message) model.messages }
             , Cmd.none
@@ -99,6 +105,11 @@ newMessage userName message id =
     , deleted = False
     }
 
+---- SUBSCRIPTIONS ---- 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+   WebSockets.addMessageIn (AddMessage << decodeString messageDecoder)
+
 viewUsernameSelection : Model -> Html Msg 
 viewUsernameSelection model =
     div []
@@ -113,7 +124,7 @@ viewUsernameSelection model =
 viewInputArea : Model -> Html Msg
 viewInputArea model = 
     div [] 
-        [ form [ onSubmit (AddMessage <| newMessage model.userName model.currentMessage model.id)] 
+        [ form [ onSubmit (SendMessage <| newMessage model.userName model.currentMessage model.id)] 
             [ input [ type_ "text", onInput UpdateCurrentMessage ] [ ] 
             , button [ disabled (String.isEmpty model.currentMessage) ] [ text "Send" ] 
             ]
