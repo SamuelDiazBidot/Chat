@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html, text, div, h1, img, form, input, button)
-import Html.Attributes exposing (src, type_, placeholder, disabled)
+import Html.Attributes exposing (src, type_, placeholder, disabled, class, value)
 import Html.Events exposing (onInput, onSubmit, onClick)
 import Json.Decode exposing (Decoder, succeed, int, string, bool, decodeString) 
 import Json.Decode.Pipeline exposing (required)
@@ -75,10 +75,9 @@ update msg model =
         AddMessage (Err error) ->
             (model, Cmd.none)
         SendMessage message ->
-            ( model 
+            ( { model | currentMessage = "" }
             , WebSockets.addMessageOut (Encode.encode 0 (messageEncoder message)) )
         Delete id ->
-            Debug.log  "hi"--(Debug.toString model.messages)
             ( { model | messages = List.map (\message -> deleteById id message) model.messages }
             , Cmd.none
             )
@@ -130,21 +129,37 @@ viewInputArea : Model -> Html Msg
 viewInputArea model = 
     div [] 
         [ form [ onSubmit (SendMessage <| newMessage model.userName model.currentMessage)] 
-            [ input [ type_ "text", onInput UpdateCurrentMessage ] [ ] 
-            , button [ disabled (String.isEmpty model.currentMessage) ] [ text "Send" ] 
+            [ input 
+                [ type_ "text"
+                , onInput UpdateCurrentMessage
+                , value model.currentMessage
+                , class "message-input" 
+                ] 
+                [] 
+            , button 
+                [ disabled (String.isEmpty model.currentMessage)
+                , class "send-button" 
+                ] 
+                [ text "Send" ] 
             ]
         ]
 
 viewReceivedMessage : Message -> Html Msg
 viewReceivedMessage message =
-    div []
-        [ text (message.userName ++ ": " ++ message.message)]
+    div [ class "received-message"]
+        [ div [ class "received-message-username" ] [ text (message.userName ++ ":") ]
+        , div [ class "received-message-message" ] [ text message.message ]
+        ]
 
 viewSentMessage : Message -> Html Msg
 viewSentMessage message =
-    div []
-        [ text message.message 
-        , button [ onClick (SendDeleteRequest message.uid) ] [ text "delete" ]
+    div [ class "sent-message"]
+        [ div [] [ text message.message ] 
+        , button
+            [ onClick (SendDeleteRequest message.uid)
+            , class "delete-button" 
+            ] 
+            [ text "delete" ]
         ]
 
 viewMessage : String -> Message -> Html Msg

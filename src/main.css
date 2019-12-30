@@ -24,3 +24,43 @@ img {
   margin: 20px 0;
   max-width: 200px;
 }
+
+.message-input {
+  border: none;
+  border-bottom : 1px solid grey;
+  text-align: center;
+}
+
+.send-button {
+  border: none;
+  background-color: white;
+}
+
+.received-message {
+  background-color: lightgrey;
+  padding: 5px;
+  margin: 5px 40% 5px 20%;
+  border-radius: 2px;
+  text-align: left;
+}
+
+.received-message-username {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.received-message-message {
+  position: relative;
+  left: 5%;
+}
+
+.sent-message {
+  background-color: rgb(159, 205, 222);
+  margin: 5px 20% 5px 40%;
+  border-radius: 2px;
+}
+
+.delete-button {
+  border:none;
+  background-color: rgb(159, 205, 222);
+}
