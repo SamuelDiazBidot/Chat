@@ -14,10 +14,12 @@ body {
   margin: 0;
   text-align: center;
   color: #293c4b;
+  background-color: aliceblue;
 }
 
 h1 {
   font-size: 30px;
+  color: grey;
 }
 
 img {
@@ -25,23 +27,58 @@ img {
   max-width: 200px;
 }
 
+.username-div {
+  margin: 10% auto;
+}
+
+.username-input {
+  border: none;
+  border-bottom: 1px solid grey;
+  background-color: aliceblue;
+  text-align: center;
+  width: 50%;
+  font-size: large;
+  font-weight: 500;
+}
+
+.username-continue-button {
+  border: none;
+  background-color: aliceblue;
+}
+
 .message-input {
   border: none;
   border-bottom : 1px solid grey;
+  background-color: aliceblue;
   text-align: center;
+  width: 50%;
+  margin: 10px;
 }
 
 .send-button {
   border: none;
-  background-color: white;
+  background-color: aliceblue;
+}
+
+.messages-div {
+  background-color: aliceblue;
+  margin: 0 15%;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column-reverse;
+  height: 600px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .received-message {
   background-color: lightgrey;
   padding: 5px;
-  margin: 5px 40% 5px 20%;
+  margin: 5px 0% 5px 1%;
   border-radius: 2px;
+  word-break: break-word;
   text-align: left;
+  align-self: flex-start;
 }
 
 .received-message-username {
@@ -50,17 +87,26 @@ img {
 }
 
 .received-message-message {
-  position: relative;
-  left: 5%;
+  margin-left: 5%;
 }
 
 .sent-message {
   background-color: rgb(159, 205, 222);
-  margin: 5px 20% 5px 40%;
+  margin: 5px 1% 5px 0%;
   border-radius: 2px;
+  display: flex;
+  text-align: left;
+  word-break: break-word;
+  align-self: flex-end;
+}
+
+.sent-message-message {
+  padding: 5px;
+  flex: 1;
 }
 
 .delete-button {
   border:none;
   background-color: rgb(159, 205, 222);
+  border-radius: 2px;
 }

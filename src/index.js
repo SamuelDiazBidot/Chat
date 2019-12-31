@@ -7,7 +7,7 @@ var app = Elm.Main.init({
 });
 
 //Add Message
-var addMessageWS = new WebSocket("ws://localhost:5000/addMessage");
+var addMessageWS = new WebSocket("ws://192.168.0.10:5000/addMessage");
 
 addMessageWS.onmessage = function(message) {
   app.ports.addMessageIn.send(message.data);
@@ -16,7 +16,7 @@ addMessageWS.onmessage = function(message) {
 app.ports.addMessageOut.subscribe(function(msg) { addMessageWS.send(msg); });
 
 //Delete Message
-var deleteMessageWS = new WebSocket("ws://localhost:5000/deleteMessage");
+var deleteMessageWS = new WebSocket("ws://192.168.0.10:5000/deleteMessage");
 
 deleteMessageWS.onmessage = function(message) {
   app.ports.deleteMessageIn.send(message.data);

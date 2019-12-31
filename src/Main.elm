@@ -116,18 +116,23 @@ subscriptions model =
 ---- VIEW ----
 viewUsernameSelection : Model -> Html Msg 
 viewUsernameSelection model =
-    div []
+    div [ class "username-div"]
         [ form [onSubmit ( SubmitUserName model.currentUserName )] 
             [ input [ type_ "text" 
                     , placeholder "Enter your user name"
                     , onInput UpdateCurrentUserName
+                    , class "username-input"
                     ] 
                     []
-            , button [ disabled (String.isEmpty model.currentUserName)] [ text "Continue"]]]
+            , button 
+                    [ disabled (String.isEmpty model.currentUserName)
+                    , class "username-continue-button"
+                    ] 
+                    [ text "Continue"]]]
 
 viewInputArea : Model -> Html Msg
 viewInputArea model = 
-    div [] 
+    div [ class "input-area" ] 
         [ form [ onSubmit (SendMessage <| newMessage model.userName model.currentMessage)] 
             [ input 
                 [ type_ "text"
@@ -154,7 +159,7 @@ viewReceivedMessage message =
 viewSentMessage : Message -> Html Msg
 viewSentMessage message =
     div [ class "sent-message"]
-        [ div [] [ text message.message ] 
+        [ div [class "sent-message-message"] [ text message.message ] 
         , button
             [ onClick (SendDeleteRequest message.uid)
             , class "delete-button" 
@@ -174,16 +179,22 @@ viewMessage username message =
             viewReceivedMessage message
 
 ---- VIEW ----
-view : Model -> Html Msg
-view model =
+viewBody : Model -> Html Msg
+viewBody model =
     case model.userName of 
-        "" -> 
+        "" ->
             viewUsernameSelection model
         _ ->
             div []
-                [ h1 [] [ text "Chat App" ]
+                [ div [ class "messages-div" ] (List.map (viewMessage model.userName) model.messages)
                 , viewInputArea model
-                , div [] (List.map (viewMessage model.userName) model.messages) 
+                ]
+
+view : Model -> Html Msg
+view model =
+            div []
+                [ h1 [] [ text "Chat App" ]
+                , viewBody model
                 ]
 
 ---- PROGRAM ----
