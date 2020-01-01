@@ -1,13 +1,15 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, text, div, h1, img, form, input, button)
-import Html.Attributes exposing (src, type_, placeholder, disabled, class, value)
+import Html exposing (Html, text, div, h1, form, input, button)
+import Html.Attributes exposing ( type_, placeholder, disabled, class, value)
 import Html.Events exposing (onInput, onSubmit, onClick)
 import Json.Decode exposing (Decoder, succeed, int, string, bool, decodeString) 
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import WebSockets
+import Task
+import Time
 
 ---- MODEL ----
 type alias Message =
@@ -39,6 +41,8 @@ type alias Model =
     , currentMessage : String 
     , userName : String
     , currentUserName : String
+    , time : Time.Posix
+    , zone : Time.Zone
     }
 
 initialModel : Model 
@@ -47,11 +51,15 @@ initialModel =
     , currentMessage = ""
     , userName = "" 
     , currentUserName = ""
+    , time = Time.millisToPosix 0
+    , zone = Time.utc
     }
 
 init : () -> ( Model, Cmd Msg )
 init () =
-    ( initialModel, Cmd.none )
+    ( initialModel 
+    , Task.perform AdjustTimeZone Time.here 
+    )
 
 ---- UPDATE ----
 type Msg
@@ -62,6 +70,8 @@ type Msg
     | SendDeleteRequest Int
     | SubmitUserName String
     | UpdateCurrentUserName String
+    | NewTime Time.Posix
+    | AdjustTimeZone Time.Zone
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -70,9 +80,9 @@ update msg model =
             ( { model | currentMessage = message }, Cmd.none )
         AddMessage (Ok message) ->
             ( { model | messages = message :: model.messages }
-            , Cmd.none 
+            , getNewTime 
             )
-        AddMessage (Err error) ->
+        AddMessage (Err _) ->
             (model, Cmd.none)
         SendMessage message ->
             ( { model | currentMessage = "" }
@@ -89,6 +99,14 @@ update msg model =
             ( { model | userName = username }, Cmd.none )
         UpdateCurrentUserName username ->
             ( { model | currentUserName = username }, Cmd.none )
+        NewTime newTime ->
+            ( { model | time = newTime } 
+            , Cmd.none 
+            )
+        AdjustTimeZone newZone ->
+            ( { model | zone = newZone }
+            , Cmd.none 
+            )
 
 deleteById : Int -> Message -> Message
 deleteById id message = 
@@ -105,9 +123,13 @@ newMessage userName message =
     , deleted = False
     }
 
+getNewTime : Cmd Msg 
+getNewTime =
+    Task.perform NewTime Time.now
+
 ---- SUBSCRIPTIONS ---- 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch 
         [ WebSockets.addMessageIn (AddMessage << decodeString messageDecoder) 
         , WebSockets.deleteMessageIn (Delete << (\t -> Maybe.withDefault 0 <| String.toInt t))
@@ -149,34 +171,54 @@ viewInputArea model =
             ]
         ]
 
-viewReceivedMessage : Message -> Html Msg
-viewReceivedMessage message =
+viewTime : Time.Zone -> Time.Posix -> Html Msg
+viewTime zone time =
+    let
+        hourInt = Time.toHour zone time 
+        hour = 
+            if hourInt >= 12 then 
+                String.fromInt (hourInt - 12)
+            else 
+                String.fromInt hourInt
+        minute = String.fromInt (Time.toMinute zone time)
+        meridiem =
+            if (hourInt >= 12) && (hourInt < 24) then 
+                "pm"
+            else 
+                "am"
+    in
+        text (hour ++ ":" ++ minute ++ " " ++ meridiem)
+
+viewReceivedMessage : Message -> Time.Zone -> Time.Posix -> Html Msg
+viewReceivedMessage message zone time =
     div [ class "received-message"]
         [ div [ class "received-message-username" ] [ text (message.userName ++ ":") ]
         , div [ class "received-message-message" ] [ text message.message ]
+        , div [ class "received-message-time" ] [ viewTime zone time ]
         ]
 
-viewSentMessage : Message -> Html Msg
-viewSentMessage message =
+viewSentMessage : Message -> Time.Zone -> Time.Posix -> Html Msg
+viewSentMessage message zone time =
     div [ class "sent-message"]
-        [ div [class "sent-message-message"] [ text message.message ] 
+        [ div [ class "sent-message-message" ] [ text message.message ] 
         , button
             [ onClick (SendDeleteRequest message.uid)
             , class "delete-button" 
             ] 
             [ text "delete" ]
+        , div [ class "sent-message-time" ] [ viewTime zone time ]
         ]
 
-viewMessage : String -> Message -> Html Msg
-viewMessage username message =
+viewMessage : String -> Time.Zone -> Time.Posix -> Message -> Html Msg
+viewMessage username zone time message =
     if message.deleted then 
         div []
             [ text (message.userName ++ " deleted this message") ]
     else
         if message.userName == username then 
-            viewSentMessage message
+            viewSentMessage message zone time
         else 
-            viewReceivedMessage message
+            viewReceivedMessage message zone time
 
 ---- VIEW ----
 viewBody : Model -> Html Msg
@@ -186,7 +228,7 @@ viewBody model =
             viewUsernameSelection model
         _ ->
             div []
-                [ div [ class "messages-div" ] (List.map (viewMessage model.userName) model.messages)
+                [ div [ class "messages-div" ] (List.map (viewMessage model.userName model.zone model.time) model.messages)
                 , viewInputArea model
                 ]
 

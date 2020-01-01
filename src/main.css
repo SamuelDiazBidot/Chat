@@ -90,6 +90,11 @@ img {
   margin-left: 5%;
 }
 
+.received-message-time {
+  font-size: 10px; 
+  text-align: right;
+}
+
 .sent-message {
   background-color: rgb(159, 205, 222);
   margin: 5px 1% 5px 0%;
@@ -103,6 +108,12 @@ img {
 .sent-message-message {
   padding: 5px;
   flex: 1;
+}
+
+.sent-message-time {
+  padding: 5px;
+  font-size: 10px;
+  align-self: flex-end;
 }
 
 .delete-button {
