@@ -10,3 +10,9 @@ port addMessageOut : String -> Cmd msg
 port deleteMessageIn : (String -> msg) -> Sub msg
 -- JavaScript usage: app.ports.deleteMessageOut.subscribe(handler);
 port deleteMessageOut : String -> Cmd msg
+
+
+--JavaScript usage: app.ports.editMessageIn.send(response);
+port editMessageIn : (String -> msg) -> Sub msg 
+-- JavaScript usage: app.ports.editMessageOut.subscribe(handler);
+port editMessageOut : String -> Cmd msg

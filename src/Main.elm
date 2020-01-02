@@ -4,7 +4,7 @@ import Browser
 import Html exposing (Html, text, div, h1, form, input, button)
 import Html.Attributes exposing ( type_, placeholder, disabled, class, value)
 import Html.Events exposing (onInput, onSubmit, onClick)
-import Json.Decode exposing (Decoder, succeed, int, string, bool, decodeString) 
+import Json.Decode exposing (Decoder, succeed, int, string, bool, decodeString)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import WebSockets
@@ -17,6 +17,7 @@ type alias Message =
     , message : String 
     , uid : Int
     , deleted : Bool
+    , edited : Bool
     }
 
 messageEncoder : Message -> Encode.Value
@@ -35,6 +36,7 @@ messageDecoder =
         |> required "message" string 
         |> required "uid" int 
         |> required "deleted" bool
+        |> required "edited" bool
 
 type alias Model =
     { messages : List Message 
@@ -121,6 +123,7 @@ newMessage userName message =
     , message = message
     , uid = 0 
     , deleted = False
+    , edited = False
     }
 
 getNewTime : Cmd Msg 
@@ -147,10 +150,12 @@ viewUsernameSelection model =
                     ] 
                     []
             , button 
-                    [ disabled (String.isEmpty model.currentUserName)
+                    [ disabled (String.isEmpty <| String.trim model.currentUserName)
                     , class "username-continue-button"
                     ] 
-                    [ text "Continue"]]]
+                    [ text "Continue"]
+            ]
+        ]
 
 viewInputArea : Model -> Html Msg
 viewInputArea model = 
@@ -164,7 +169,7 @@ viewInputArea model =
                 ] 
                 [] 
             , button 
-                [ disabled (String.isEmpty model.currentMessage)
+                [ disabled (String.isEmpty <| String.trim model.currentMessage)
                 , class "send-button" 
                 ] 
                 [ text "Send" ] 
