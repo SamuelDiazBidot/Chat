@@ -27,6 +27,7 @@ messageEncoder message =
         , ("message", Encode.string message.message)
         , ("uid", Encode.int message.uid)
         , ("deleted", Encode.bool message.deleted)
+        , ("edited", Encode.bool message.edited)
         ]
 
 messageDecoder : Decoder Message
@@ -38,6 +39,10 @@ messageDecoder =
         |> required "deleted" bool
         |> required "edited" bool
 
+type Input
+    = Sending 
+    | Editing Message
+
 type alias Model =
     { messages : List Message 
     , currentMessage : String 
@@ -45,6 +50,7 @@ type alias Model =
     , currentUserName : String
     , time : Time.Posix
     , zone : Time.Zone
+    , input : Input
     }
 
 initialModel : Model 
@@ -55,6 +61,7 @@ initialModel =
     , currentUserName = ""
     , time = Time.millisToPosix 0
     , zone = Time.utc
+    , input = Sending
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -74,6 +81,9 @@ type Msg
     | UpdateCurrentUserName String
     | NewTime Time.Posix
     | AdjustTimeZone Time.Zone
+    | Edit (Result Json.Decode.Error Message)
+    | ToggleEdit Message
+    | SendEditRequest Message
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -88,7 +98,8 @@ update msg model =
             (model, Cmd.none)
         SendMessage message ->
             ( { model | currentMessage = "" }
-            , WebSockets.addMessageOut (Encode.encode 0 (messageEncoder message)) )
+            , WebSockets.addMessageOut (Encode.encode 0 (messageEncoder message)) 
+            )
         Delete id ->
             ( { model | messages = List.map (\message -> deleteById id message) model.messages }
             , Cmd.none
@@ -109,11 +120,42 @@ update msg model =
             ( { model | zone = newZone }
             , Cmd.none 
             )
+        Edit (Ok message) ->
+            ( { model | messages = List.map (\oldMessage -> editById message.uid message.message oldMessage) model.messages }
+            , Cmd.none
+            )
+        Edit (Err _) ->
+            ( model, Cmd.none )
+        ToggleEdit message ->
+            case model.input of 
+                Sending ->
+                    ( { model | input = Editing message } 
+                    , Cmd.none 
+                    )
+                Editing _ ->
+                    ( { model | input = Sending } 
+                    , Cmd.none 
+                    )
+        SendEditRequest message ->
+            ( { model | currentMessage = "" 
+                      , input = Sending 
+              }
+            , WebSockets.editMessageOut (Encode.encode 0 (messageEncoder message))
+            )
 
 deleteById : Int -> Message -> Message
 deleteById id message = 
     if message.uid == id then 
         { message | deleted = True }
+    else 
+        message
+
+editById : Int -> String -> Message -> Message
+editById id newMessageText message = 
+    if message.uid == id then
+        { message | edited = True
+                  , message = newMessageText 
+        }
     else 
         message
 
@@ -126,6 +168,10 @@ newMessage userName message =
     , edited = False
     }
 
+updateMessageText : Message -> String -> Message
+updateMessageText oldmessage newText =
+    { oldmessage | message = newText }
+
 getNewTime : Cmd Msg 
 getNewTime =
     Task.perform NewTime Time.now
@@ -136,6 +182,7 @@ subscriptions _ =
     Sub.batch 
         [ WebSockets.addMessageIn (AddMessage << decodeString messageDecoder) 
         , WebSockets.deleteMessageIn (Delete << (\t -> Maybe.withDefault 0 <| String.toInt t))
+        , WebSockets.editMessageIn (Edit << decodeString messageDecoder)
         ]
 
 ---- VIEW ----
@@ -157,35 +204,67 @@ viewUsernameSelection model =
             ]
         ]
 
-viewInputArea : Model -> Html Msg
-viewInputArea model = 
-    div [ class "input-area" ] 
-        [ form [ onSubmit (SendMessage <| newMessage model.userName model.currentMessage)] 
-            [ input 
-                [ type_ "text"
-                , onInput UpdateCurrentMessage
-                , value model.currentMessage
-                , class "message-input" 
-                ] 
-                [] 
-            , button 
-                [ disabled (String.isEmpty <| String.trim model.currentMessage)
-                , class "send-button" 
-                ] 
-                [ text "Send" ] 
-            ]
-        ]
+viewInputArea : Input -> String -> String -> Html Msg
+viewInputArea inputType userName currentMessage = 
+    case inputType of 
+        Sending ->
+            div [ class "input-area" ] 
+                [ form [ onSubmit (SendMessage <| newMessage userName currentMessage)] 
+                    [ input 
+                        [ type_ "text"
+                        , onInput UpdateCurrentMessage
+                        , value currentMessage
+                        , class "message-input" 
+                        ] 
+                        [] 
+                    , button 
+                        [ disabled (String.isEmpty <| String.trim currentMessage)
+                        , class "send-button" 
+                        ] 
+                        [ text "Send" ] 
+                    ]
+                ]
+        Editing message ->
+            div [ class "edit-input-area" ]
+                [ div [] [ text message.message ]
+                , form [ onSubmit (SendEditRequest <| updateMessageText message currentMessage) ] 
+                    [ input 
+                        [ type_ "text"
+                        , onInput UpdateCurrentMessage
+                        , value currentMessage
+                        , class "message-input"
+                        ]
+                        []
+                        , button 
+                            [ disabled (String.isEmpty <| String.trim currentMessage)
+                            , class "send-button" 
+                            ] 
+                            [ text "Send" ] 
+                    ]
+                ]
+
+viewEdited : Bool -> Html Msg
+viewEdited edited =
+    if edited then 
+        text "Edited"
+    else 
+        text ""
 
 viewTime : Time.Zone -> Time.Posix -> Html Msg
 viewTime zone time =
     let
         hourInt = Time.toHour zone time 
+        minuteInt = Time.toMinute zone time
         hour = 
             if hourInt >= 12 then 
                 String.fromInt (hourInt - 12)
             else 
                 String.fromInt hourInt
-        minute = String.fromInt (Time.toMinute zone time)
+        minute =
+            if (minuteInt >= 0) && (minuteInt < 10) then 
+                "0" ++ String.fromInt minuteInt
+            else 
+                String.fromInt minuteInt
         meridiem =
             if (hourInt >= 12) && (hourInt < 24) then 
                 "pm"
@@ -199,6 +278,7 @@ viewReceivedMessage message zone time =
     div [ class "received-message"]
         [ div [ class "received-message-username" ] [ text (message.userName ++ ":") ]
         , div [ class "received-message-message" ] [ text message.message ]
+        , div [] [ viewEdited message.edited ]
         , div [ class "received-message-time" ] [ viewTime zone time ]
         ]
 
@@ -211,6 +291,12 @@ viewSentMessage message zone time =
             , class "delete-button" 
             ] 
             [ text "delete" ]
+        , button 
+            [ onClick (ToggleEdit message)
+            , class "edit-button"
+            ]
+            [ text "edit" ]
+        , div [ class "sent-message-edited" ] [ viewEdited message.edited ]
         , div [ class "sent-message-time" ] [ viewTime zone time ]
         ]
 
@@ -234,7 +320,7 @@ viewBody model =
         _ ->
             div []
                 [ div [ class "messages-div" ] (List.map (viewMessage model.userName model.zone model.time) model.messages)
-                , viewInputArea model
+                , viewInputArea model.input model.userName model.currentMessage
                 ]
 
 view : Model -> Html Msg

@@ -103,11 +103,20 @@ img {
   text-align: left;
   word-break: break-word;
   align-self: flex-end;
+  position: relative;
 }
 
 .sent-message-message {
   padding: 5px;
   flex: 1;
+}
+
+.sent-message-edited {
+  padding: 5px;
+  font-size: 10px;
+  position: absolute; 
+  top: 0px;
+  right: 0px;
 }
 
 .sent-message-time {
@@ -118,6 +127,12 @@ img {
 
 .delete-button {
   border:none;
+  background-color: rgb(159, 205, 222);
+  border-radius: 2px;
+}
+
+.edit-button {
+  border: none;
   background-color: rgb(159, 205, 222);
   border-radius: 2px;
 }
