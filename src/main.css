@@ -77,52 +77,73 @@ img {
   margin: 5px 0% 5px 1%;
   border-radius: 2px;
   word-break: break-word;
-  text-align: left;
+  display: grid; 
+  grid-template-columns: 2fr 1fr;
   align-self: flex-start;
 }
 
 .received-message-username {
   font-size: 12px;
   font-weight: bold;
+  text-align: left;
 }
 
 .received-message-message {
   margin-left: 5%;
+  text-align: left;
+  grid-row-start: 2;
+  grid-row-end: 3;
+}
+
+.received-message-edited {
+  font-size: 10px;
+  text-align: right;
 }
 
 .received-message-time {
   font-size: 10px; 
-  text-align: right;
+  display: flex;
+  justify-content: right;
+  align-items: flex-end;
 }
 
 .sent-message {
   background-color: rgb(159, 205, 222);
   margin: 5px 1% 5px 0%;
   border-radius: 2px;
-  display: flex;
-  text-align: left;
   word-break: break-word;
   align-self: flex-end;
-  position: relative;
+  /* text-align: left; */
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
 }
 
 .sent-message-message {
   padding: 5px;
-  flex: 1;
+  display: flex;
+  align-items: center;
+  grid-row-start: 1;
+  grid-row-end: 3;
+  /* justify-content: center; */
 }
 
 .sent-message-edited {
   padding: 5px;
   font-size: 10px;
-  position: absolute; 
-  top: 0px;
-  right: 0px;
+  grid-column-start: 3;
+  grid-column-end: auto;
+  grid-row-start: 1;
+  grid-row-end: 2;
+  /* display: flex; */
+  text-align: right;
 }
 
 .sent-message-time {
   padding: 5px;
   font-size: 10px;
-  align-self: flex-end;
+  display: flex;
+  justify-content: right;
+  align-items: flex-end;
 }
 
 .delete-button {

@@ -278,7 +278,7 @@ viewReceivedMessage message zone time =
     div [ class "received-message"]
         [ div [ class "received-message-username" ] [ text (message.userName ++ ":") ]
         , div [ class "received-message-message" ] [ text message.message ]
-        , div [] [ viewEdited message.edited ]
+        , div [ class "received-message-edited"] [ viewEdited message.edited ]
         , div [ class "received-message-time" ] [ viewTime zone time ]
         ]
 
