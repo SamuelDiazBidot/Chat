@@ -108,33 +108,35 @@ img {
 }
 
 .sent-message {
-  background-color: rgb(159, 205, 222);
-  margin: 5px 1% 5px 0%;
-  border-radius: 2px;
-  word-break: break-word;
   align-self: flex-end;
-  /* text-align: left; */
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: auto auto;
+}
+
+.sent-message-area {
+  background-color: rgb(159, 205, 222);
+  margin: 5px 0;
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 1fr auto;
 }
 
 .sent-message-message {
   padding: 5px;
+  word-break: break-word;
   display: flex;
   align-items: center;
   grid-row-start: 1;
   grid-row-end: 3;
-  /* justify-content: center; */
 }
 
 .sent-message-edited {
   padding: 5px;
   font-size: 10px;
-  grid-column-start: 3;
+  grid-column-start: 2;
   grid-column-end: auto;
   grid-row-start: 1;
   grid-row-end: 2;
-  /* display: flex; */
   text-align: right;
 }
 
@@ -146,14 +148,33 @@ img {
   align-items: flex-end;
 }
 
+/* .sent-message-area:hover {
+  transform: translateX(-10%);
+} */
+
+/* .sent-message-area:hover + .delete-edit-div {
+  display:flex;
+  align-items: center;
+} */
+
+.delete-edit-div {
+  /* display: none; */
+  display: flex;
+  align-items: center;
+}
+
 .delete-button {
   border:none;
-  background-color: rgb(159, 205, 222);
-  border-radius: 2px;
+  background-color: aliceblue;
 }
 
 .edit-button {
   border: none;
-  background-color: rgb(159, 205, 222);
+  background-color: aliceblue;
+}
+
+.editing-text {
+  background-color: rgb(255,238,198);
+  margin: 0 25%;
   border-radius: 2px;
 }

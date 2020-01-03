@@ -208,7 +208,7 @@ viewInputArea : Input -> String -> String -> Html Msg
 viewInputArea inputType userName currentMessage = 
     case inputType of 
         Sending ->
-            div [ class "input-area" ] 
+            div [] 
                 [ form [ onSubmit (SendMessage <| newMessage userName currentMessage)] 
                     [ input 
                         [ type_ "text"
@@ -225,8 +225,8 @@ viewInputArea inputType userName currentMessage =
                     ]
                 ]
         Editing message ->
-            div [ class "edit-input-area" ]
-                [ div [] [ text message.message ]
+            div []
+                [ div [ class "editing-text"] [ text message.message ]
                 , form [ onSubmit (SendEditRequest <| updateMessageText message currentMessage) ] 
                     [ input 
                         [ type_ "text"
@@ -285,19 +285,23 @@ viewReceivedMessage message zone time =
 viewSentMessage : Message -> Time.Zone -> Time.Posix -> Html Msg
 viewSentMessage message zone time =
     div [ class "sent-message"]
-        [ div [ class "sent-message-message" ] [ text message.message ] 
-        , button
-            [ onClick (SendDeleteRequest message.uid)
-            , class "delete-button" 
-            ] 
-            [ text "delete" ]
-        , button 
-            [ onClick (ToggleEdit message)
-            , class "edit-button"
+        [ div [class "sent-message-area"]
+            [ div [ class "sent-message-message" ] [ text message.message ] 
+            , div [ class "sent-message-edited" ] [ viewEdited message.edited ]
+            , div [ class "sent-message-time" ] [ viewTime zone time ]
             ]
-            [ text "edit" ]
-        , div [ class "sent-message-edited" ] [ viewEdited message.edited ]
-        , div [ class "sent-message-time" ] [ viewTime zone time ]
+        , div [ class "delete-edit-div" ]
+            [ button
+                [ onClick (SendDeleteRequest message.uid)
+                , class "delete-button" 
+                ] 
+                [ text "delete" ]
+            , button 
+                [ onClick (ToggleEdit message)
+                , class "edit-button"
+                ]
+                [ text "edit" ]
+            ]
         ]
 
 viewMessage : String -> Time.Zone -> Time.Posix -> Message -> Html Msg

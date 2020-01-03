@@ -5,6 +5,5 @@ An attempt to write my own toy chat app using Elm. The web app comunicates with 
 
 ## Features:
 - [x] Delete sent messages
-- [ ] Edit sent messages
+- [x] Edit sent messages
 - [x] Each message has a time stamp
-- [ ] The server notifies when a user enters or leaves the chat room
