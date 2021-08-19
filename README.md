@@ -1,5 +1,5 @@
 # Chat App
-An attempt to write my own toy chat app using Elm. The web app comunicates with a web server using web-sockets.
+An attempt to write my own toy chat app using Elm. The web app comunicates with [this](https://github.com/SamuelDiazBidot/Chat-Server) web server implemented with clojure using web-sockets. 
 
 ![](demo.gif)
 
